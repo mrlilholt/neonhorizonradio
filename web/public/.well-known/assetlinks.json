@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.neonhorizonradio",
+      "sha256_cert_fingerprints": [
+        "00:91:4E:88:86:61:20:3A:0C:65:9E:55:41:96:7E:1B:12:6C:DF:17:DA:5F:F7:21:74:5F:BB:4E:11:BD:B1:D4"
+      ]
+    }
+  }
+]

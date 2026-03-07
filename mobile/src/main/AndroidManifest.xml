@@ -37,6 +37,18 @@
                     android:scheme="neonhorizon"
                     android:host="station" />
             </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="neonhorizonradio.netlify.app"
+                    android:pathPrefix="/station/" />
+            </intent-filter>
         </activity>
 
         <service

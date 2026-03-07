@@ -200,8 +200,8 @@ class MainActivity : ComponentActivity() {
         private const val SUNSET_HORIZON_THEME_ID = "sunset_horizon"
         private const val STATION_LINK_SCHEME = "neonhorizon"
         private const val STATION_LINK_HOST = "station"
-        private const val FALLBACK_DOWNLOAD_URL =
-            "https://drive.google.com/drive/folders/1ZqQDKF2eMO4BWcjzXMOr6aE7GHLoM4BY?usp=sharing"
+        private const val STATION_LINK_WEB_HOST = "neonhorizonradio.netlify.app"
+        private const val STATION_LINK_WEB_BASE = "https://$STATION_LINK_WEB_HOST/station"
     }
 
     private fun handleDeepLinkIntent(intent: Intent?) {
@@ -214,55 +214,43 @@ class MainActivity : ComponentActivity() {
             return null
         }
 
-        if (!uri.scheme.equals(STATION_LINK_SCHEME, ignoreCase = true)) {
-            return null
+        if (uri.scheme.equals(STATION_LINK_SCHEME, ignoreCase = true) &&
+            uri.host.equals(STATION_LINK_HOST, ignoreCase = true)
+        ) {
+            return uri.pathSegments.firstOrNull()?.trim()?.takeIf { it.isNotBlank() }
         }
 
-        if (!uri.host.equals(STATION_LINK_HOST, ignoreCase = true)) {
-            return null
+        if (uri.scheme.equals("https", ignoreCase = true) &&
+            uri.host.equals(STATION_LINK_WEB_HOST, ignoreCase = true)
+        ) {
+            val pathSegments = uri.pathSegments
+            if (pathSegments.firstOrNull().equals("station", ignoreCase = true)) {
+                return pathSegments.getOrNull(1)?.trim()?.takeIf { it.isNotBlank() }
+            }
         }
 
-        return uri.pathSegments.firstOrNull()?.trim()?.takeIf { it.isNotBlank() }
+        return null
     }
 
     private fun shareStation(
         context: Context,
         station: RadioStation
     ) {
-        val customSchemeLink = "$STATION_LINK_SCHEME://$STATION_LINK_HOST/${station.id}"
-        val fallbackUrlEncoded = Uri.encode(FALLBACK_DOWNLOAD_URL)
-        val intentLink = buildString {
-            append("intent://")
-            append(STATION_LINK_HOST)
-            append("/")
-            append(station.id)
-            append("#Intent;scheme=")
-            append(STATION_LINK_SCHEME)
-            append(";package=")
-            append(packageName)
-            append(";S.browser_fallback_url=")
-            append(fallbackUrlEncoded)
-            append(";end")
-        }
+        val stationUrl = "$STATION_LINK_WEB_BASE/${station.id}"
         val stationLocation = station.country.ifBlank { "Unknown location" }
         val shareText = buildString {
             append("Tune into ${station.name} on Neon Horizon Radio")
             append(" • $stationLocation")
-            append("\n\nTap this to open in app:")
+            append("\n\nOpen station:")
             append("\n")
-            append(intentLink)
-            append("\n\nIf that does not open the app, use:")
-            append("\n")
-            append(customSchemeLink)
-            append("\n\nDownload app:")
-            append("\n")
-            append(FALLBACK_DOWNLOAD_URL)
+            append(stationUrl)
         }
 
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_SUBJECT, "Neon Horizon Radio: ${station.name}")
             putExtra(Intent.EXTRA_TEXT, shareText)
+            putExtra(Intent.EXTRA_HTML_TEXT, "<p>${shareText.replace("\n", "<br/>")}</p>")
         }
 
         context.startActivity(
