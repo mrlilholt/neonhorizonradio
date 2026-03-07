@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { onAuthStateChanged, type User } from 'firebase/auth'
 import { DEFAULT_GENRES, SHARE_FALLBACK_URL } from './lib/constants'
 import { getStationById, searchStations } from './lib/api'
+import {
+  loadCloudFavorites,
+  mergeFavorites,
+  removeCloudFavorite,
+  syncMergedFavoritesToCloud,
+  upsertCloudFavorite
+} from './lib/cloudFavorites'
+import { firebaseAuth, isFirebaseConfigured, signInWithGoogle, signOutFromGoogle } from './lib/firebase'
 import { getLocalForecast } from './lib/weather'
 import { loadFavorites, loadVolume, loadWeatherEnabled, saveFavorites, saveVolume, saveWeatherEnabled } from './lib/storage'
 import type { LocalWeatherForecast, MainTab, RadioStation } from './types'
@@ -20,6 +29,7 @@ function RadioRoute() {
   const { stationId } = useParams()
   const navigate = useNavigate()
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const favoritesRef = useRef<RadioStation[]>(loadFavorites())
   const playerWindowRef = useRef<HTMLElement | null>(null)
   const stationsWindowRef = useRef<HTMLElement | null>(null)
   const favoritesWindowRef = useRef<HTMLElement | null>(null)
@@ -41,6 +51,13 @@ function RadioRoute() {
   const [weather, setWeather] = useState<LocalWeatherForecast | null>(null)
   const [weatherMessage, setWeatherMessage] = useState<string>('Waiting for local forecast.')
   const [showSettings, setShowSettings] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [authStatusMessage, setAuthStatusMessage] = useState(
+    isFirebaseConfigured
+      ? 'Signed out. Using local favorites.'
+      : 'Firebase web auth is not configured yet.'
+  )
+  const [isAuthBusy, setIsAuthBusy] = useState(false)
 
   const favoriteIds = useMemo(() => new Set(favorites.map((station) => station.id)), [favorites])
 
@@ -79,6 +96,7 @@ function RadioRoute() {
   }, [])
 
   useEffect(() => {
+    favoritesRef.current = favorites
     saveFavorites(favorites)
   }, [favorites])
 
@@ -92,6 +110,26 @@ function RadioRoute() {
   useEffect(() => {
     saveWeatherEnabled(isWeatherEnabled)
   }, [isWeatherEnabled])
+
+  useEffect(() => {
+    if (!firebaseAuth) {
+      return
+    }
+
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      setCurrentUser(user)
+      setIsAuthBusy(false)
+
+      if (!user) {
+        setAuthStatusMessage('Signed out. Using local favorites.')
+        return
+      }
+
+      void syncFavoritesFromCloud(user)
+    })
+
+    return unsubscribe
+  }, [])
 
   useEffect(() => {
     void loadStations({ query: '', genre: 'Lofi' })
@@ -170,6 +208,68 @@ function RadioRoute() {
     }
   }
 
+  async function syncFavoritesFromCloud(user: User) {
+    setAuthStatusMessage('Syncing favorites from cloud...')
+
+    try {
+      const cloudFavorites = await loadCloudFavorites(user.uid)
+      const localFavorites = favoritesRef.current
+      const mergedFavorites = mergeFavorites(localFavorites, cloudFavorites)
+
+      setFavorites(mergedFavorites)
+      saveFavorites(mergedFavorites)
+
+      if (mergedFavorites.length > 0) {
+        await syncMergedFavoritesToCloud(user.uid, mergedFavorites)
+      }
+
+      setAuthStatusMessage(`Cloud favorites synced (${mergedFavorites.length}).`)
+    } catch (error) {
+      setAuthStatusMessage(
+        error instanceof Error ? error.message : 'Unable to sync cloud favorites.'
+      )
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (!isFirebaseConfigured) {
+      setAuthStatusMessage('Firebase web auth is not configured yet.')
+      return
+    }
+
+    setIsAuthBusy(true)
+    setAuthStatusMessage('Starting Google sign-in...')
+
+    try {
+      await signInWithGoogle()
+      setAuthStatusMessage('Completing sign-in...')
+    } catch (error) {
+      setIsAuthBusy(false)
+      setAuthStatusMessage(
+        error instanceof Error ? error.message : 'Google sign-in failed.'
+      )
+    }
+  }
+
+  async function handleGoogleSignOut() {
+    if (!firebaseAuth) {
+      setAuthStatusMessage('Firebase web auth is not configured yet.')
+      return
+    }
+
+    setIsAuthBusy(true)
+
+    try {
+      await signOutFromGoogle()
+      setAuthStatusMessage('Signed out. Using local favorites.')
+    } catch (error) {
+      setIsAuthBusy(false)
+      setAuthStatusMessage(
+        error instanceof Error ? error.message : 'Sign-out failed.'
+      )
+    }
+  }
+
   function focusTab(nextTab: MainTab) {
     setTab(nextTab)
 
@@ -229,13 +329,33 @@ function RadioRoute() {
     }
   }
 
-  function toggleFavorite(station: RadioStation) {
+  async function toggleFavorite(station: RadioStation) {
+    const isRemoving = favoriteIds.has(station.id)
+
     setFavorites((current) => {
-      if (current.some((item) => item.id === station.id)) {
+      if (isRemoving) {
         return current.filter((item) => item.id !== station.id)
       }
       return [{ ...station }, ...current]
     })
+
+    if (!currentUser) {
+      return
+    }
+
+    try {
+      if (isRemoving) {
+        await removeCloudFavorite(currentUser.uid, station.id)
+        setAuthStatusMessage('Favorite removed from cloud.')
+      } else {
+        await upsertCloudFavorite(currentUser.uid, station)
+        setAuthStatusMessage('Favorite synced to cloud.')
+      }
+    } catch (error) {
+      setAuthStatusMessage(
+        error instanceof Error ? error.message : 'Unable to update cloud favorites.'
+      )
+    }
   }
 
   async function shareStation(station: RadioStation) {
@@ -440,6 +560,44 @@ function RadioRoute() {
             <div className="modal-panel" onClick={(event) => event.stopPropagation()}>
               <Window title="Neon Horizon Radio Settings" onMinimize={() => setShowSettings(false)}>
                 <div className="settings-grid">
+                  <section className="settings-section">
+                    <div className="settings-section-header">
+                      <strong>Google Account</strong>
+                    </div>
+
+                    {currentUser ? (
+                      <div className="account-summary">
+                        <img
+                          className="account-avatar"
+                          src={currentUser.photoURL || '/assets/logo-neon-horizon-small.png'}
+                          alt={currentUser.displayName || 'Signed-in user'}
+                        />
+                        <div>
+                          <div>{currentUser.displayName || 'Signed in'}</div>
+                          <div className="account-detail">{currentUser.email || 'Google account'}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="settings-note">
+                        Sign in with Google to sync favorites with the same Firebase account used by Android.
+                      </div>
+                    )}
+
+                    <div className="settings-actions">
+                      {currentUser ? (
+                        <button onClick={handleGoogleSignOut} disabled={isAuthBusy}>
+                          {isAuthBusy ? 'Working...' : 'Sign out'}
+                        </button>
+                      ) : (
+                        <button onClick={handleGoogleSignIn} disabled={!isFirebaseConfigured || isAuthBusy}>
+                          {isAuthBusy ? 'Working...' : 'Sign in with Google'}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="settings-note">{authStatusMessage}</div>
+                  </section>
+
                   <label className="setting-row">
                     <span>Weather</span>
                     <input
@@ -449,7 +607,7 @@ function RadioRoute() {
                     />
                   </label>
                   <div className="settings-note">
-                    Firebase web auth/favorites sync is intentionally deferred until a web app is registered in Firebase and Netlify environment variables are available.
+                    Weather uses browser location plus Open-Meteo over HTTPS. On Netlify it should work once location access is granted.
                   </div>
                 </div>
               </Window>

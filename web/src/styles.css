@@ -97,6 +97,7 @@ input {
 .search-row button,
 .station-actions button,
 .controls-row button,
+.settings-actions button,
 .taskbar button,
 .titlebar-button {
   border: 2px solid var(--panel-border-dark);
@@ -431,6 +432,42 @@ input {
 .settings-grid {
   display: grid;
   gap: 14px;
+}
+
+.settings-section {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.account-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--panel-border-dark);
+  object-fit: cover;
+  background: #111;
+}
+
+.account-detail {
+  color: #444;
+  font-size: 0.92rem;
 }
 
 .setting-row {
