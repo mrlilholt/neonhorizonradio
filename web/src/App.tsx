@@ -20,6 +20,9 @@ function RadioRoute() {
   const { stationId } = useParams()
   const navigate = useNavigate()
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const playerWindowRef = useRef<HTMLElement | null>(null)
+  const stationsWindowRef = useRef<HTMLElement | null>(null)
+  const favoritesWindowRef = useRef<HTMLElement | null>(null)
 
   const [tab, setTab] = useState<MainTab>('player')
   const [stations, setStations] = useState<RadioStation[]>([])
@@ -167,6 +170,19 @@ function RadioRoute() {
     }
   }
 
+  function focusTab(nextTab: MainTab) {
+    setTab(nextTab)
+
+    const target =
+      nextTab === 'player'
+        ? playerWindowRef.current
+        : nextTab === 'stations'
+          ? stationsWindowRef.current
+          : favoritesWindowRef.current
+
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   function playStation(station: RadioStation, queue = stations, nextQueueLabel = queueLabel) {
     const audio = audioRef.current
     if (!audio) return
@@ -183,7 +199,7 @@ function RadioRoute() {
     setActiveStation(station)
     setCurrentQueue(effectiveQueue)
     setQueueLabel(nextQueueLabel)
-    setTab('player')
+    focusTab('player')
     setPlaybackStatus('Buffering')
     navigate(`/station/${station.id}`, { replace: true })
   }
@@ -281,7 +297,7 @@ function RadioRoute() {
 
         <div className="desktop-columns">
           <section className="desktop-main">
-            <Window title="Neon Horizon Radio">
+            <Window title="Neon Horizon Radio" sectionRef={playerWindowRef}>
               <div className="status-strip">
                 <span>Stations: {stations.length}</span>
                 <span>Favorites: {favorites.length}</span>
@@ -343,7 +359,7 @@ function RadioRoute() {
           </section>
 
           <aside className="desktop-side">
-            <Window title="Stations">
+            <Window title="Stations" sectionRef={stationsWindowRef}>
               <div className="search-row">
                 <input
                   value={searchQuery}
@@ -390,7 +406,7 @@ function RadioRoute() {
               </div>
             </Window>
 
-            <Window title="Favorites">
+            <Window title="Favorites" sectionRef={favoritesWindowRef}>
               <div className="favorites-list">
                 {favorites.length === 0 ? (
                   <div className="empty-state">No favorites yet. Save stations here.</div>
@@ -412,9 +428,9 @@ function RadioRoute() {
         </div>
 
         <footer className="taskbar">
-          <button className={tab === 'player' ? 'is-selected' : ''} onClick={() => setTab('player')}>▣ Player</button>
-          <button className={tab === 'stations' ? 'is-selected' : ''} onClick={() => setTab('stations')}>♫ Stations</button>
-          <button className={tab === 'favorites' ? 'is-selected' : ''} onClick={() => setTab('favorites')}>♥ Favorites</button>
+          <button className={tab === 'player' ? 'is-selected' : ''} onClick={() => focusTab('player')}>▣ Player</button>
+          <button className={tab === 'stations' ? 'is-selected' : ''} onClick={() => focusTab('stations')}>♫ Stations</button>
+          <button className={tab === 'favorites' ? 'is-selected' : ''} onClick={() => focusTab('favorites')}>♥ Favorites</button>
           <button onClick={() => setShowSettings(true)}>⚙</button>
           <div className="taskbar-clock">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
         </footer>
@@ -445,9 +461,14 @@ function RadioRoute() {
   )
 }
 
-function Window(props: { title: string; children: React.ReactNode; onMinimize?: () => void }) {
+function Window(props: {
+  title: string
+  children: React.ReactNode
+  onMinimize?: () => void
+  sectionRef?: React.Ref<HTMLElement>
+}) {
   return (
-    <section className="window-frame">
+    <section className="window-frame" ref={props.sectionRef}>
       <header className="window-titlebar">
         <div className="window-title">
           <img src="/assets/logo-neon-horizon-small.png" alt="" />
