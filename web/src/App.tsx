@@ -391,7 +391,7 @@ function RadioRoute() {
           <div className="desktop-brand">
             <img src="/assets/logo-neon-horizon-small.png" alt="" />
             <div>
-              <div className="desktop-eyebrow">Netlify Web Build</div>
+              <div className="desktop-eyebrow">Broadcast Console</div>
               <h1>Neon Horizon Radio</h1>
             </div>
           </div>
