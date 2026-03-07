@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "771067136560",
+    "project_id": "neon-horizon-radio",
+    "storage_bucket": "neon-horizon-radio.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:771067136560:android:60e8775d1a28e617b7fbf5",
+        "android_client_info": {
+          "package_name": "com.example.neonhorizonradio"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "771067136560-tv4fkijgm8ghqpgb4134ebbkdh2gc7vh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.neonhorizonradio",
+            "certificate_hash": "4be37f686ce03785c238064c0f4977e869ba064e"
+          }
+        },
+        {
+          "client_id": "771067136560-7o7osgrin5o8t81teve2uhg0aqo11gpv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByZx40WKVCmSEZ5Fo7s--LZ-r29TYIMgY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "771067136560-7o7osgrin5o8t81teve2uhg0aqo11gpv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
