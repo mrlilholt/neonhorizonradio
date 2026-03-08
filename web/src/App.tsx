@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-do
 import { onAuthStateChanged, type User } from 'firebase/auth'
 import { DEFAULT_GENRES, SHARE_FALLBACK_URL } from './lib/constants'
 import { getStationById, searchStations } from './lib/api'
+import { ArcadeDeck } from './components/ArcadeDeck'
 import {
   loadCloudFavorites,
   mergeFavorites,
@@ -33,6 +34,7 @@ function RadioRoute() {
   const playerWindowRef = useRef<HTMLElement | null>(null)
   const stationsWindowRef = useRef<HTMLElement | null>(null)
   const favoritesWindowRef = useRef<HTMLElement | null>(null)
+  const gamesWindowRef = useRef<HTMLElement | null>(null)
 
   const [tab, setTab] = useState<MainTab>('player')
   const [stations, setStations] = useState<RadioStation[]>([])
@@ -278,7 +280,9 @@ function RadioRoute() {
         ? playerWindowRef.current
         : nextTab === 'stations'
           ? stationsWindowRef.current
-          : favoritesWindowRef.current
+          : nextTab === 'favorites'
+            ? favoritesWindowRef.current
+            : gamesWindowRef.current
 
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -476,6 +480,10 @@ function RadioRoute() {
 
               {loadError && <div className="error-strip">{loadError}</div>}
             </Window>
+
+            <Window title="Signal Arcade" sectionRef={gamesWindowRef}>
+              <ArcadeDeck />
+            </Window>
           </section>
 
           <aside className="desktop-side">
@@ -551,6 +559,7 @@ function RadioRoute() {
           <button className={tab === 'player' ? 'is-selected' : ''} onClick={() => focusTab('player')}>▣ Player</button>
           <button className={tab === 'stations' ? 'is-selected' : ''} onClick={() => focusTab('stations')}>♫ Stations</button>
           <button className={tab === 'favorites' ? 'is-selected' : ''} onClick={() => focusTab('favorites')}>♥ Favorites</button>
+          <button className={tab === 'games' ? 'is-selected' : ''} onClick={() => focusTab('games')}>⌘ Games</button>
           <button onClick={() => setShowSettings(true)}>⚙</button>
           <div className="taskbar-clock">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
         </footer>

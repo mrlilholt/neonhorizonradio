@@ -22,4 +22,4 @@ export type LocalWeatherForecast = {
   tomorrow: WeatherDayForecast
 }
 
-export type MainTab = 'player' | 'stations' | 'favorites'
+export type MainTab = 'player' | 'stations' | 'favorites' | 'games'

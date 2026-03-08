@@ -98,6 +98,10 @@ input {
 .search-row button,
 .station-actions button,
 .controls-row button,
+.arcade-toolbar button,
+.arcade-actions button,
+.snake-controls button,
+.mine-cell,
 .settings-actions button,
 .taskbar button,
 .titlebar-button {
@@ -344,6 +348,117 @@ input {
   max-height: 430px;
   overflow: auto;
   padding-right: 4px;
+}
+
+.arcade-panel,
+.arcade-game {
+  display: grid;
+  gap: 10px;
+}
+
+.arcade-toolbar,
+.arcade-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.arcade-toolbar button,
+.arcade-actions button {
+  padding: 8px 12px;
+  min-width: 96px;
+}
+
+.arcade-toolbar button.is-selected,
+.arcade-actions button.is-selected {
+  background: #dce8ff;
+  font-weight: 700;
+}
+
+.arcade-status,
+.mines-status {
+  border: 2px solid var(--panel-border-dark);
+  background: var(--panel-inner);
+  padding: 10px 12px;
+}
+
+.arcade-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.snake-board,
+.mines-board {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 2px solid var(--panel-border-dark);
+  background:
+    linear-gradient(180deg, rgba(9, 18, 42, 0.95), rgba(17, 8, 33, 0.95));
+}
+
+.snake-cell,
+.mine-cell {
+  aspect-ratio: 1;
+}
+
+.snake-cell {
+  border: 1px solid rgba(129, 243, 255, 0.14);
+  background: rgba(7, 10, 24, 0.84);
+}
+
+.snake-cell.is-body {
+  background: linear-gradient(180deg, #88f3ff, #48bce0);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.snake-cell.is-head {
+  background: linear-gradient(180deg, #ff8cd0, #ff4db6);
+  box-shadow: 0 0 12px rgba(255, 77, 182, 0.35);
+}
+
+.snake-cell.is-food {
+  background: linear-gradient(180deg, #ffe76b, #ff9e1a);
+  box-shadow: 0 0 10px rgba(255, 194, 66, 0.28);
+}
+
+.snake-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  gap: 8px;
+  justify-content: center;
+}
+
+.snake-controls button {
+  width: 56px;
+  height: 56px;
+  font-size: 1.25rem;
+}
+
+.mine-cell {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  min-width: 0;
+  min-height: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  background: #d8d8d8;
+}
+
+.mine-cell.is-revealed {
+  background: #e7e7e7;
+  box-shadow: inset 1px 1px 0 #9b9b9b, inset -1px -1px 0 var(--panel-border-light);
+}
+
+.mine-cell.is-flagged {
+  color: #0a2a8b;
+}
+
+.mine-cell.is-mine {
+  color: #7a1d1d;
+  background: #ffdede;
 }
 
 .station-row {
