@@ -5,6 +5,13 @@ type WeatherCoordinates = {
   longitude: number
 }
 
+const DEFAULT_FALLBACK_COORDINATES: WeatherCoordinates = {
+  latitude: 40.1746,
+  longitude: -74.9227
+}
+
+const DEFAULT_FALLBACK_LABEL = 'Langhorne, PA'
+
 type OpenMeteoPayload = {
   daily: {
     weather_code: number[]
@@ -86,17 +93,17 @@ export async function getLocalForecast(latitude: number, longitude: number): Pro
   }
 }
 
-export function getConfiguredWeatherCoordinates(): WeatherCoordinates | null {
+export function getConfiguredWeatherCoordinates(): WeatherCoordinates {
   const latitude = parseCoordinate(import.meta.env.VITE_WEATHER_FALLBACK_LATITUDE)
   const longitude = parseCoordinate(import.meta.env.VITE_WEATHER_FALLBACK_LONGITUDE)
 
   if (latitude === null || longitude === null) {
-    return null
+    return DEFAULT_FALLBACK_COORDINATES
   }
 
   return { latitude, longitude }
 }
 
 export function getConfiguredWeatherLabel(): string {
-  return (import.meta.env.VITE_WEATHER_FALLBACK_LABEL ?? '').trim()
+  return (import.meta.env.VITE_WEATHER_FALLBACK_LABEL ?? '').trim() || DEFAULT_FALLBACK_LABEL
 }

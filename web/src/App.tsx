@@ -188,6 +188,19 @@ function RadioRoute() {
     let cancelled = false
     const fallbackCoordinates = getConfiguredWeatherCoordinates()
     const fallbackLabel = getConfiguredWeatherLabel()
+    const describeGeolocationError = (error: GeolocationPositionError) => {
+      const codeLabel =
+        error.code === error.PERMISSION_DENIED
+          ? 'permission denied'
+          : error.code === error.POSITION_UNAVAILABLE
+            ? 'position unavailable'
+            : error.code === error.TIMEOUT
+              ? 'timeout'
+              : 'unknown error'
+
+      const detail = error.message?.trim()
+      return detail ? `${codeLabel}: ${detail}` : codeLabel
+    }
 
     const loadForecast = async (
       latitude: number,
@@ -210,11 +223,6 @@ function RadioRoute() {
     }
 
     const loadFallbackForecast = () => {
-      if (!fallbackCoordinates) {
-        setWeatherMessage('Location unavailable. Set fallback weather coordinates for kiosk forecast.')
-        return
-      }
-
       void loadForecast(
         fallbackCoordinates.latitude,
         fallbackCoordinates.longitude,
@@ -236,11 +244,7 @@ function RadioRoute() {
         void loadForecast(position.coords.latitude, position.coords.longitude)
       },
       (error) => {
-        if (error.code === error.PERMISSION_DENIED && !fallbackCoordinates) {
-          setWeatherMessage('Location permission denied. Forecast unavailable.')
-          return
-        }
-
+        console.warn('Weather geolocation failed:', describeGeolocationError(error))
         loadFallbackForecast()
       },
       { enableHighAccuracy: false, timeout: 8000 }
