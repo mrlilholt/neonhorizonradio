@@ -96,3 +96,7 @@ export function getConfiguredWeatherCoordinates(): WeatherCoordinates | null {
 
   return { latitude, longitude }
 }
+
+export function getConfiguredWeatherLabel(): string {
+  return (import.meta.env.VITE_WEATHER_FALLBACK_LABEL ?? '').trim()
+}

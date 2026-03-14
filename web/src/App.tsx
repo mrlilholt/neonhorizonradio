@@ -13,7 +13,11 @@ import {
   upsertCloudFavorite
 } from './lib/cloudFavorites'
 import { firebaseAuth, isFirebaseConfigured, signInWithGoogle, signOutFromGoogle } from './lib/firebase'
-import { getConfiguredWeatherCoordinates, getLocalForecast } from './lib/weather'
+import {
+  getConfiguredWeatherCoordinates,
+  getConfiguredWeatherLabel,
+  getLocalForecast
+} from './lib/weather'
 import { loadFavorites, loadVolume, loadWeatherEnabled, saveFavorites, saveVolume, saveWeatherEnabled } from './lib/storage'
 import type { LocalWeatherForecast, MainTab, RadioStation } from './types'
 
@@ -183,6 +187,7 @@ function RadioRoute() {
 
     let cancelled = false
     const fallbackCoordinates = getConfiguredWeatherCoordinates()
+    const fallbackLabel = getConfiguredWeatherLabel()
 
     const loadForecast = async (
       latitude: number,
@@ -213,7 +218,9 @@ function RadioRoute() {
       void loadForecast(
         fallbackCoordinates.latitude,
         fallbackCoordinates.longitude,
-        'Using configured fallback location.'
+        fallbackLabel
+          ? `Using configured fallback location: ${fallbackLabel}.`
+          : 'Using configured fallback location.'
       )
     }
 
