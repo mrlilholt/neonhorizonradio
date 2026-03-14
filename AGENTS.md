@@ -30,3 +30,15 @@ If a requested feature deviates from the `techSpec.md` scope (e.g., adding a soc
 - The **Stations tab UI/flow is locked/frozen** and must not be modified without explicit user approval.
 - The **Favorites tab UI/flow is locked/frozen** and must not be modified without explicit user approval.
 - The **genre list and ordering are locked/frozen** and must not be modified without explicit user approval.
+
+## 7. Stability Freeze Rule
+- The **Android Auto implementation is stable/locked** and must not be modified without an explicit user request to reopen Auto scope.
+- The **mobile implementation is stable/locked** and must not be modified without an explicit user request to reopen mobile scope.
+- The **web implementation is stable/locked** and must not be modified without an explicit user request to reopen web scope.
+- The **station sharing flow is stable/locked** and must not be modified without an explicit user request to reopen sharing scope.
+- The current shared-link strategy is:
+  - Web/share URL: `https://neonhorizonradio.netlify.app/station/{uuid}`
+  - Mobile deep link support: custom scheme plus verified HTTPS App Links
+  - Web fallback: station route on the deployed site
+- Check [web/README.md](web/README.md) for web development instructions.
+- Any future changes to player behavior, favorites sync, share-link handling, deep-link routing, or cross-platform navigation should be treated as **reopened scope**, not routine maintenance.

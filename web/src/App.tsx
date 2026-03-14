@@ -8,11 +8,12 @@ import {
   loadCloudFavorites,
   mergeFavorites,
   removeCloudFavorite,
+  subscribeToCloudFavorites,
   syncMergedFavoritesToCloud,
   upsertCloudFavorite
 } from './lib/cloudFavorites'
 import { firebaseAuth, isFirebaseConfigured, signInWithGoogle, signOutFromGoogle } from './lib/firebase'
-import { getLocalForecast } from './lib/weather'
+import { getConfiguredWeatherCoordinates, getLocalForecast } from './lib/weather'
 import { loadFavorites, loadVolume, loadWeatherEnabled, saveFavorites, saveVolume, saveWeatherEnabled } from './lib/storage'
 import type { LocalWeatherForecast, MainTab, RadioStation } from './types'
 
@@ -124,42 +125,123 @@ function RadioRoute() {
 
       if (!user) {
         setAuthStatusMessage('Signed out. Using local favorites.')
-        return
       }
-
-      void syncFavoritesFromCloud(user)
     })
 
     return unsubscribe
   }, [])
 
   useEffect(() => {
+    if (!currentUser) {
+      return
+    }
+
+    let cancelled = false
+    let unsubscribe: (() => void) | null = null
+
+    void (async () => {
+      try {
+        await syncFavoritesFromCloud(currentUser)
+        if (cancelled) {
+          return
+        }
+
+        unsubscribe = subscribeToCloudFavorites(currentUser.uid, (cloudFavorites) => {
+          if (cancelled) {
+            return
+          }
+
+          setFavorites(cloudFavorites)
+          setAuthStatusMessage(`Cloud favorites synced (${cloudFavorites.length}).`)
+        })
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+
+        setAuthStatusMessage(
+          error instanceof Error ? error.message : 'Unable to sync cloud favorites.'
+        )
+      }
+    })()
+
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
+  }, [currentUser])
+
+  useEffect(() => {
     void loadStations({ query: '', genre: 'Lofi' })
   }, [])
 
   useEffect(() => {
-    if (!isWeatherEnabled || !navigator.geolocation) {
-      if (!isWeatherEnabled) {
-        setWeatherMessage('Weather hidden.')
-      }
+    if (!isWeatherEnabled) {
+      setWeatherMessage('Weather hidden.')
       return
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const forecast = await getLocalForecast(position.coords.latitude, position.coords.longitude)
-          setWeather(forecast)
-          setWeatherMessage('')
-        } catch (error) {
+    let cancelled = false
+    const fallbackCoordinates = getConfiguredWeatherCoordinates()
+
+    const loadForecast = async (
+      latitude: number,
+      longitude: number,
+      fallbackMessage = ''
+    ) => {
+      try {
+        const forecast = await getLocalForecast(latitude, longitude)
+        if (cancelled) {
+          return
+        }
+
+        setWeather(forecast)
+        setWeatherMessage(fallbackMessage)
+      } catch (error) {
+        if (!cancelled) {
           setWeatherMessage(error instanceof Error ? error.message : 'Weather unavailable.')
         }
+      }
+    }
+
+    const loadFallbackForecast = () => {
+      if (!fallbackCoordinates) {
+        setWeatherMessage('Location unavailable. Set fallback weather coordinates for kiosk forecast.')
+        return
+      }
+
+      void loadForecast(
+        fallbackCoordinates.latitude,
+        fallbackCoordinates.longitude,
+        'Using configured fallback location.'
+      )
+    }
+
+    if (!navigator.geolocation) {
+      loadFallbackForecast()
+      return () => {
+        cancelled = true
+      }
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        void loadForecast(position.coords.latitude, position.coords.longitude)
       },
-      () => {
-        setWeatherMessage('Location declined. Forecast unavailable.')
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED && !fallbackCoordinates) {
+          setWeatherMessage('Location permission denied. Forecast unavailable.')
+          return
+        }
+
+        loadFallbackForecast()
       },
       { enableHighAccuracy: false, timeout: 8000 }
     )
+
+    return () => {
+      cancelled = true
+    }
   }, [isWeatherEnabled])
 
   useEffect(() => {

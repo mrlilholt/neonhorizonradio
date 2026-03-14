@@ -1,4 +1,12 @@
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  onSnapshot,
+  setDoc,
+  type Unsubscribe
+} from 'firebase/firestore'
 import { firestore } from './firebase'
 import type { RadioStation } from '../types'
 
@@ -81,6 +89,36 @@ export async function loadCloudFavorites(userId: string) {
       )
     )
     .filter((station): station is RadioStation => station !== null)
+}
+
+export function subscribeToCloudFavorites(
+  userId: string,
+  onFavoritesChanged: (favorites: RadioStation[]) => void
+): Unsubscribe {
+  if (!firestore) {
+    throw new Error('Firebase web auth is not configured.')
+  }
+
+  return onSnapshot(
+    collection(
+      firestore,
+      FIRESTORE_USERS_COLLECTION,
+      userId,
+      FIRESTORE_FAVORITES_COLLECTION
+    ),
+    (snapshot) => {
+      const favorites = snapshot.docs
+        .map((documentSnapshot) =>
+          mapFavoriteDocument(
+            documentSnapshot.data() as Record<string, unknown>,
+            documentSnapshot.id
+          )
+        )
+        .filter((station): station is RadioStation => station !== null)
+
+      onFavoritesChanged(favorites)
+    }
+  )
 }
 
 export async function upsertCloudFavorite(userId: string, station: RadioStation) {

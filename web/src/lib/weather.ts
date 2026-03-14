@@ -1,5 +1,10 @@
 import type { LocalWeatherForecast, WeatherDayForecast } from '../types'
 
+type WeatherCoordinates = {
+  latitude: number
+  longitude: number
+}
+
 type OpenMeteoPayload = {
   daily: {
     weather_code: number[]
@@ -38,6 +43,15 @@ function summarize(code: number) {
   return WEATHER_SUMMARY[code] ?? 'Open Skies'
 }
 
+function parseCoordinate(value: string | undefined): number | null {
+  if (!value) {
+    return null
+  }
+
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function mapDay(label: string, payload: OpenMeteoPayload, index: number): WeatherDayForecast {
   const unit = payload.daily_units?.temperature_2m_max ?? '°F'
   return {
@@ -70,4 +84,15 @@ export async function getLocalForecast(latitude: number, longitude: number): Pro
     today: mapDay('Today', payload, 0),
     tomorrow: mapDay('Tomorrow', payload, 1)
   }
+}
+
+export function getConfiguredWeatherCoordinates(): WeatherCoordinates | null {
+  const latitude = parseCoordinate(import.meta.env.VITE_WEATHER_FALLBACK_LATITUDE)
+  const longitude = parseCoordinate(import.meta.env.VITE_WEATHER_FALLBACK_LONGITUDE)
+
+  if (latitude === null || longitude === null) {
+    return null
+  }
+
+  return { latitude, longitude }
 }
